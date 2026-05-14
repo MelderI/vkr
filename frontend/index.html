@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Оптимизация расписания</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Дипломный прототип</p>
+          <h1>Оптимизация расписания преподавателей</h1>
+          <p class="hero-text">
+            Система берет Excel-файл учебной нагрузки, выделяет занятия и
+            строит расписание без конфликтов по преподавателям, группам и аудиториям.
+          </p>
+        </div>
+        <div class="hero-card">
+          <span>Алгоритм</span>
+          <strong>CP-SAT / CSP</strong>
+          <small>не жадная расстановка, а поиск с ограничениями</small>
+        </div>
+      </section>
+
+      <section class="info-grid">
+        <article class="info-card">
+          <span>1</span>
+          <h2>Откуда данные</h2>
+          <p>
+            Входом служат Excel-файлы учебной нагрузки: в них есть преподаватели,
+            дисциплины, группы, потоки и часы. Это не готовое расписание, а основа
+            для автоматического построения расписания.
+          </p>
+        </article>
+        <article class="info-card">
+          <span>2</span>
+          <h2>Что делает парсер</h2>
+          <p>
+            Парсер превращает строки нагрузки в заявки на занятия: кто ведет,
+            какую дисциплину, у каких групп и сколько пар нужно поставить в сетку.
+          </p>
+        </article>
+        <article class="info-card">
+          <span>3</span>
+          <h2>Роль demo_data</h2>
+          <p>
+            Файл <code>demo_data.py</code> добавляет демонстрационные аудитории и
+            временные слоты. В Excel-нагрузке этих справочников нет, поэтому они
+            заданы отдельно для работы прототипа.
+          </p>
+        </article>
+      </section>
+
+      <section class="process">
+        <div>
+          <p class="eyebrow">Что происходит после запуска</p>
+          <h2>Система ищет расписание, которое не нарушает ограничения</h2>
+          <p>
+            Оптимизатор выбирает для каждой заявки день, пару и аудиторию. Затем
+            проверяется, что преподаватель, группа и аудитория не заняты в двух
+            местах одновременно. Мягкие штрафы помогают выбирать более удобные
+            варианты: меньше окон, более компактная нагрузка и разумное
+            использование аудиторий.
+          </p>
+        </div>
+        <ul class="check-list">
+          <li>преподаватель не ведет две пары одновременно</li>
+          <li>группа не попадает на два занятия в один слот</li>
+          <li>аудитория не занята двумя занятиями сразу</li>
+          <li>вместимость аудитории подходит под поток или группу</li>
+        </ul>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <h2>Сформировать расписание</h2>
+          <p>
+            Выберите демо-файл из проекта или загрузите свой Excel. Для быстрой
+            демонстрации можно ограничить число заявок и отфильтровать преподавателя.
+          </p>
+        </div>
+        <form id="scheduleForm" class="form">
+          <label>
+            Демо-файл из проекта
+            <select name="sample_file" id="sampleFile">
+              <option value="">Загрузка вручную</option>
+            </select>
+          </label>
+
+          <label>
+            Или загрузить свой .xlsx
+            <input type="file" name="file" accept=".xlsx" />
+          </label>
+
+          <label>
+            Фильтр по преподавателю
+            <input name="teacher" placeholder="Например: Абаев" />
+          </label>
+
+          <label>
+            Максимум заявок
+            <input name="limit" type="number" min="1" max="200" value="50" />
+          </label>
+
+          <button type="submit">Сформировать расписание</button>
+        </form>
+      </section>
+
+      <section id="status" class="status hidden"></section>
+
+      <section id="result" class="hidden">
+        <div class="metrics">
+          <article>
+            <span>Заявок</span>
+            <strong id="requestCount">0</strong>
+          </article>
+          <article>
+            <span>Занятий</span>
+            <strong id="lessonCount">0</strong>
+          </article>
+          <article>
+            <span>Ошибок</span>
+            <strong id="issueCount">0</strong>
+          </article>
+          <article>
+            <span>Окна</span>
+            <strong id="windowCount">0</strong>
+          </article>
+        </div>
+
+        <div class="toolbar">
+          <div>
+            <h2>Готовое расписание</h2>
+            <p id="solverInfo"></p>
+          </div>
+          <button id="downloadCsv" type="button">Скачать CSV</button>
+        </div>
+
+        <div class="result-note">
+          <strong>Как читать результат:</strong>
+          каждая строка — поставленное занятие. В таблице видно преподавателя,
+          день, номер пары, дисциплину, группы и выбранную аудиторию. Блок
+          проверки ниже показывает, появились ли конфликты после генерации.
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Преподаватель</th>
+                <th>День</th>
+                <th>Пара</th>
+                <th>Дисциплина</th>
+                <th>Тип</th>
+                <th>Группы</th>
+                <th>Аудитория</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+          </table>
+        </div>
+
+        <div class="issues">
+          <h2>Проверка конфликтов</h2>
+          <div id="issuesList" class="issue-list"></div>
+        </div>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
